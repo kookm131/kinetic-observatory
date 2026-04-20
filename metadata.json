@@ -1,0 +1,6 @@
+{
+  "name": "Kinetic Observatory",
+  "description": "High-fidelity real-time game telemetry and analytics dashboard.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
