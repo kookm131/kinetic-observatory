@@ -55,3 +55,30 @@ services:
     environment:
       RABBITMQ_HOST: rabbitmq
       MONGO_URI: mongodb://admin:password@mongodb:27017/
+
+  stream-processor:
+    build:
+      context: ./backend
+      dockerfile: stream_processor/Dockerfile
+    depends_on:
+      - rabbitmq
+    environment:
+      RABBITMQ_HOST: rabbitmq
+
+  intelligence-service:
+    build:
+      context: ./backend
+      dockerfile: intelligence_service/Dockerfile
+    depends_on:
+      - rabbitmq
+    environment:
+      RABBITMQ_HOST: rabbitmq
+
+  marketing-service:
+    build:
+      context: ./backend
+      dockerfile: marketing_service/Dockerfile
+    depends_on:
+      - rabbitmq
+    environment:
+      RABBITMQ_HOST: rabbitmq

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { cn } from '@/src/lib/utils';
 import { Sidebar } from '@/src/components/Sidebar';
 import { TopBar } from '@/src/components/TopBar';
@@ -12,6 +12,23 @@ import { motion, AnimatePresence } from 'motion/react';
 export default function App() {
   const [activeTab, setActiveTab] = useState('users');
   const [activeTopTab, setActiveTopTab] = useState('realtime');
+  const [stats, setStats] = useState({ active_events_10m: 0, system_status: 'initializing' });
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await fetch('http://localhost:8000/stats/realtime');
+        const data = await response.json();
+        setStats(data);
+      } catch (error) {
+        console.error('Failed to fetch stats:', error);
+      }
+    };
+
+    fetchStats();
+    const interval = setInterval(fetchStats, 5000); // Poll every 5s
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="min-h-screen bg-surface-background text-zinc-300">
@@ -70,7 +87,9 @@ export default function App() {
                       <div>
                         <h2 className="text-[10px] font-mono tracking-[0.3em] text-zinc-500 uppercase mb-2">실시간 동시 접속자 (CCU)</h2>
                         <div className="flex items-baseline gap-4">
-                          <span className="text-5xl font-black text-primary font-headline">128,492</span>
+                          <span className="text-5xl font-black text-primary font-headline">
+                            {stats.active_events_10m.toLocaleString()}
+                          </span>
                           <div className="flex items-center gap-1.5 text-secondary">
                             <Icons.TrendingUp size={16} />
                             <span className="text-xs font-bold">+12.4%</span>
