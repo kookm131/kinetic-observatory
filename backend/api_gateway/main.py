@@ -57,10 +57,13 @@ async def receive_event(event: GameEvent):
         raise HTTPException(status_code=503, detail="Message broker unavailable")
     
     try:
+        # Declare exchange for Pub/Sub
+        channel.exchange_declare(exchange='events_exchange', exchange_type='fanout', durable=True)
+        
         message = event.model_dump_json()
         channel.basic_publish(
-            exchange='',
-            routing_key=QUEUE_NAME,
+            exchange='events_exchange',
+            routing_key='',
             body=message,
             properties=pika.BasicProperties(delivery_mode=2))
         connection.close()

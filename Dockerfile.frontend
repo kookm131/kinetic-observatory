@@ -1,0 +1,14 @@
+FROM node:20-slim
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm install
+
+COPY . .
+
+# Vite의 기본 포트인 5173을 노출합니다.
+EXPOSE 5173
+
+# Vite를 외부 접속 허용 모드로 실행합니다.
+CMD ["npm", "run", "dev", "--", "--host"]

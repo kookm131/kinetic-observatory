@@ -82,3 +82,12 @@ services:
       - rabbitmq
     environment:
       RABBITMQ_HOST: rabbitmq
+  
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "5173:3000"
+    depends_on:
+      - api-gateway

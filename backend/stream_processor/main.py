@@ -10,6 +10,12 @@ def process_stream():
     # 1. 환경 설정
     config = Configuration()
     env = StreamExecutionEnvironment.get_execution_environment(config)
+    
+    # RabbitMQ JAR 파일 경로 추가 (Connector & Client)
+    env.add_jars(
+        "file:///app/lib/flink-connector-rabbitmq-3.0.1-1.17.jar",
+        "file:///app/lib/amqp-client-5.19.0.jar"
+    )
     env.set_parallelism(1)
 
     # 2. RabbitMQ 연결 설정
@@ -17,15 +23,25 @@ def process_stream():
     connection_config = RMQConnectionConfig.Builder() \
         .set_host(RABBITMQ_HOST) \
         .set_port(5672) \
+        .set_virtual_host("/") \
         .set_user_name("guest") \
         .set_password("guest") \
         .build()
 
+    # 2.5 Ensure Queue/Exchange Binding (using pika)
+    tmp_conn = pika.BlockingConnection(pika.ConnectionParameters(host=RABBITMQ_HOST))
+    tmp_ch = tmp_conn.channel()
+    tmp_ch.exchange_declare(exchange='events_exchange', exchange_type='fanout', durable=True)
+    tmp_ch.queue_declare(queue='stream_queue', durable=True)
+    tmp_ch.queue_bind(exchange='events_exchange', queue='stream_queue')
+    tmp_conn.close()
+
     # 3. 데이터 소스 (RabbitMQ)
+    # Note: For actual Pub/Sub in Flink, usually you'd ensure the exchange/queue binding is done.
     serialization_schema = SimpleStringSchema()
     source = RMQSource(
         connection_config,
-        "game_events",
+        "stream_queue", # Each service should listen to its own queue
         False,
         serialization_schema
     )

@@ -10,6 +10,7 @@
 
 ## 📋 핵심 문서 (Core Documentation)
 - **[PRD (기획서)](docu/PRD.md)**: 실시간 분석 및 마케팅 자동화의 비즈니스 가치와 요구사항 정의.
+- **[Integration Guide (연동 가이드)](docu/integration_guide.md)**: 핵심 시스템 기동 및 DB 연동을 위한 단계별 가이드.
 - **[Technical Architecture (기술 설계)](docu/Architecture.md)**: FastAPI, PyFlink, SageMaker를 활용한 MSA 구조 및 데이터 흐름.
 - **[ERD (데이터 모델)](docu/ERD.md)**: PostgreSQL, MongoDB, Redis를 활용한 폴리글랏 퍼시스턴스 모델.
 - **[Roadmap (개발 로그)](docu/roadmap.md)**: Phase 1~5에 걸친 구현 프로세스 및 결과 정리.
@@ -51,19 +52,20 @@ graph LR
 
 ## 🚀 시작하기
 
-### 1. 인프라 환경 구축 (Docker)
-로컬 인프라(RabbitMQ, MongoDB, Redis, PostgreSQL)를 기동합니다.
+### 1. 인프라 및 서비스 실행 (Docker 권장)
+본 프로젝트는 도커 환경에 최적화되어 있습니다. 아래 명령어 하나로 모든 인프라와 백엔드 서비스를 기동할 수 있습니다. (로컬에 파이썬 라이브러리를 따로 설치할 필요가 없습니다.)
 ```bash
-docker-compose up -d
+# 프로젝트 루트에서 실행
+docker-compose up -d --build
 ```
 
-### 2. 백엔드 서비스 실행
-모든 서비스는 `backend/` 폴더 내의 각 하위 폴더에서 실시간 기동 가능합니다.
+### 2. 가상 환경에서의 로컬 실행 (선택 사항)
+만약 도커 없이 로컬에서 직접 개발 환경을 구축하려면 가상 환경을 사용해야 합니다.
 ```bash
 cd backend
+python3 -m venv venv
+source venv/bin/activate
 pip install -r requirements.txt
-# 예시: API Gateway 실행
-python api_gateway/main.py
 ```
 
 ### 3. 프론트엔드 대시보드

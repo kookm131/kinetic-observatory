@@ -55,9 +55,14 @@ def main():
         return
 
     channel = connection.channel()
-    channel.queue_declare(queue=QUEUE_NAME, durable=True)
+    # Ensure exchange exists and bind own queue
+    channel.exchange_declare(exchange='events_exchange', exchange_type='fanout', durable=True)
+    result = channel.queue_declare(queue='ingestion_queue', durable=True)
+    queue_name = result.method.queue
+    channel.queue_bind(exchange='events_exchange', queue=queue_name)
+
     channel.basic_qos(prefetch_count=1)
-    channel.basic_consume(queue=QUEUE_NAME, on_message_callback=callback)
+    channel.basic_consume(queue=queue_name, on_message_callback=callback)
 
     print(' [*] Ingestion Service started. Waiting for messages. To exit press CTRL+C')
     channel.start_consuming()

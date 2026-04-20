@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM python:3.10-slim
 
 WORKDIR /app
 
@@ -9,5 +9,6 @@ COPY common/ ./common/
 COPY ingestion_service/ ./ingestion_service/
 
 ENV PYTHONPATH=/app
+ENV PYTHONUNBUFFERED=1
 
 CMD ["python", "ingestion_service/main.py"]
