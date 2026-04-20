@@ -4,81 +4,94 @@
 
 # Kinetic Observatory (실시간 게임 분석 플랫폼)
 
-본 프로젝트는 대규모 모바일 게임 유저의 실시간 데이터를 수집 및 분석하여, **AI 기반의 이탈 예측과 개인화된 마케팅 액션을 자동화**하는 통합 분석 플랫폼입니다.
+본 프로젝트는 대규모 모바일 게임 유저의 실시간 데이터를 수집 및 분석하여, **AI 기반의 이탈 예측과 개인화된 마케팅 액션을 자동화**하는 통합 분석 플랫폼입니다. 
 
 ---
 
-## 📋 핵심 문서 (Core Documentation)
-- **[PRD (기획서)](docu/PRD.md)**: 실시간 분석 및 마케팅 자동화의 비즈니스 가치와 요구사항 정의.
-- **[Integration Guide (연동 가이드)](docu/integration_guide.md)**: 핵심 시스템 기동 및 DB 연동을 위한 단계별 가이드.
-- **[Technical Architecture (기술 설계)](docu/Architecture.md)**: FastAPI, PyFlink, SageMaker를 활용한 MSA 구조 및 데이터 흐름.
-- **[ERD (데이터 모델)](docu/ERD.md)**: PostgreSQL, MongoDB, Redis를 활용한 폴리글랏 퍼시스턴스 모델.
-- **[Roadmap (개발 로그)](docu/roadmap.md)**: Phase 1~5에 걸친 구현 프로세스 및 결과 정리.
-- **[MLOps (모델 관리)](docu/mlops.md)**: 자동화된 모델 성능 모니터링 및 재학습 파이프라인 설계.
+## 🏗️ 시스템 아키텍처 (EDA-MSA)
 
----
-
-## 🏗️ 시스템 아키텍처 및 데이터 흐름
+본 시스템은 **Fanout Exchange 기반의 Pub/Sub 아키텍처**를 채택하여 실시간 적재와 실시간 분석을 독립적으로 수행합니다.
 
 ```mermaid
-graph LR
-    Client[Game Client] --> Gateway[API Gateway]
-    Gateway --> RMQ[RabbitMQ]
-    RMQ --> Processor[Flink Stream Processor]
-    RMQ --> Ingestion[Ingestion Service]
-    Ingestion --> Mongo[(MongoDB)]
-    Processor --> Intel[Intelligence Service]
-    Intel -- SageMaker --> Predict[Churn Prediction]
-    Intel --> Market[Marketing Service]
-    Market --> Notify[Push/In-app Notification]
-    Mongo --> Dashboard[React Dashboard]
+graph TD
+    subgraph "External"
+        User((Game Client)) -->|REST API| AGW[API Gateway: FastAPI]
+    end
+
+    subgraph "Message Bus (RabbitMQ)"
+        AGW -->|Publish| EX[Events Exchange: Fanout]
+        EX --> IQ[Ingestion Queue]
+        EX --> SQ[Stream Queue]
+    end
+
+    subgraph "Core Backend Services"
+        IQ --> IS[Ingestion Service]
+        IS --> MDB[(MongoDB)]
+        
+        SQ --> SP[Stream Processor: PyFlink]
+        SP --> Intel[Intelligence Service]
+        Intel -- SageMaker --> MS[Marketing Service]
+        MS --> Action[Marketing Action: Sim]
+    end
+
+    subgraph "Visualization"
+        MDB -.-> Dash[Real-time Dashboard: React/Vite]
+        AGW -.-> Dash
+    end
 ```
+
+---
+
+## 🚀 퀵 스타트 (One-Click Setup)
+
+본 프로젝트는 **도커(Docker)** 기술을 통해 전체 시스템(10개 컨테이너)을 한 번에 실행할 수 있도록 최적화되어 있습니다.
+
+### 1. 전체 시스템 실행 (백엔드 + 프론트엔드 + 인프라)
+```bash
+# 프로젝트 루트 디렉토리에서 실행
+docker-compose up -d --build
+```
+
+### 2. 접속 및 확인
+- **📊 실시간 대시보드**: [http://localhost:5173](http://localhost:5173) 접속
+- **📖 API 명세서 (Swagger)**: [http://localhost:8000/docs](http://localhost:8000/docs) 접속
+- **🐰 RabbitMQ 관리**: [http://localhost:15672](http://localhost:15672) (ID/PW: guest/guest)
+
+## 📖 API Reference (Swagger)
+
+FastAPI에서 자동으로 생성되는 대화형 API 명세서를 통해 실시간으로 이력을 테스트할 수 있습니다.
+
+1. `http://localhost:8000/docs` 접속
+2. **Post /events** 클릭 -> **Try it out** 클릭
+3. 샘플 JSON 데이터 수정 후 **Execute** 실행
+4. 하단 **Curl** 및 **Response** 확인
 
 ---
 
 ## 📂 프로젝트 구조
 
 - `backend/`: Python 기반 마이크로서비스 엔진
-  - `api_gateway/`: FastAPI 기반 이벤트 수집기 및 통계 API
+  - `api_gateway/`: 이벤트 수집 및 Pub/Sub 발행 대문
   - `ingestion_service/`: 비동기 MongoDB 적재 서비스
-  - `stream_processor/`: PyFlink 기반의 실시간 스트리밍 분석 엔진
-  - `intelligence_service/`: AI 모델 연동 및 이탈 예측 엔진 (SageMaker)
-  - `marketing_service/`: 실시간 캠페인 자동화 액션 실행기
-- `src/`: 프론트엔드 모니터링 대시보드 (React + Vite)
-- `infra/`: 인프라 및 운영 설정 (`k8s`, `prometheus`)
-- `docu/`: 프로젝트 상세 기술 문서
-
----
-
-## 🚀 시작하기
-
-### 1. 인프라 및 서비스 실행 (Docker 권장)
-본 프로젝트는 도커 환경에 최적화되어 있습니다. 아래 명령어 하나로 모든 인프라와 백엔드 서비스를 기동할 수 있습니다. (로컬에 파이썬 라이브러리를 따로 설치할 필요가 없습니다.)
-```bash
-# 프로젝트 루트에서 실행
-docker-compose up -d --build
-```
-
-### 2. 가상 환경에서의 로컬 실행 (선택 사항)
-만약 도커 없이 로컬에서 직접 개발 환경을 구축하려면 가상 환경을 사용해야 합니다.
-```bash
-cd backend
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-```
-
-### 3. 프론트엔드 대시보드
-실시간 CCU 및 시스템 상태를 대시보드에서 확인합니다.
-```bash
-npm install
-npm run dev
-```
+  - `stream_processor/`: PyFlink 기반 실시간 분석 엔진
+  - `intelligence_service/`: 예측 모델 연동 엔진
+  - `marketing_service/`: 마케팅 자동화 실행 엔진
+- `Dockerfile.frontend`: 리얼타임 대시보드 배포 설정
+- `docu/`: 프로젝트 상세 기술 문서 및 연동 가이드
+- `infra/`: Kubernetes(EKS), Prometheus 모니터링 설정
 
 ---
 
 ## 📈 주요 기술 스택
-- **Backend**: Python (FastAPI), PyFlink, Pika, Motor, Boto3
-- **Frontend**: React, TypeScript, Vite, TailwindCSS, Plotly, D3.js
-- **Data**: MongoDB, PostgreSQL, Redis, RabbitMQ
-- **Ops**: Kubernetes (EKS), Prometheus, Grafana, SageMaker (MLOps)
+
+- **Backend**: Python 3.10, FastAPI, **PyFlink 1.18**, Pika, Motor
+- **Frontend**: React 19, Vite 6, TailwindCSS, Recharts
+- **Data**: MongoDB, Redis, PostgreSQL, RabbitMQ
+- **Ops**: Docker, Kubernetes, AWS SageMaker (MLOps Ready)
+
+---
+
+## 📋 문서 바로가기
+- **[Architecture (기술 설계)](docu/Architecture.md)**: 다중 큐 분산 구조 및 상세 레이어 설명.
+- **[Integration Guide (검증 완료)](docu/integration_guide.md)**: 전 구간 통합 테스트 성공 레포트.
+- **[Roadmap (개발 완료)](docu/roadmap.md)**: Phase 1~5 최종 성과 및 요약.

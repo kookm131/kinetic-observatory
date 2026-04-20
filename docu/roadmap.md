@@ -4,46 +4,37 @@
 
 ## Phase 1: 핵심 데이터 파이프라인 구축 (완료 ✅)
 - [x] **인프라 안정화**: RabbitMQ, MongoDB, Redis 컨테이너 연동 및 환경 변수 최적화.
-- [x] **API Gateway 고도화**: 수신된 이벤트를 RabbitMQ `game_events` 큐로 발행(Pub)하는 로직 구현.
-- [x] **Ingestion Service 구현**: 큐에서 메시지를 소비(Sub)하여 MongoDB에 원본 및 가공 데이터를 저장.
-- [x] **데이터 검증**: 이벤트 스키마(Pydantic) 기반의 데이터 유효성 검사 강화.
+- [x] **API Gateway 고도화**: 수신된 이벤트를 RabbitMQ `events_exchange` (Fanout)로 발행하는 Pub/Sub 구조 확립.
+- [x] **Ingestion Service 구현**: 전용 큐(`ingestion_queue`)를 통해 데이터를 소비하여 MongoDB에 저장.
 
-> **Phase 1 코멘트**: 
-> Microservices 간 비동기 메시징 구조를 확립했습니다. 이제 대량의 게임 서버 이벤트가 들어오더라도 RabbitMQ가 버퍼 역할을 수행하며, Ingestion Service가 안전하게 MongoDB에 데이터를 적재합니다.
+> **Phase 1 성과**: 
+> 단순 큐 분배 방식에서 **Fanout Exchange 기반의 Pub/Sub 구조**로 업그레이드하여, 하나의 이벤트가 유실 없이 여러 마이크로 서비스(Ingestion, Analysis 등)에 동시에 전달되는 확장성을 확보했습니다.
 
 ## Phase 2: 실시간 분석 엔진 (Apache Flink) 도입 (완료 ✅)
-- [x] **Flink 연동**: RabbitMQ를 Source로 하는 Flink 스트리밍 애플리케이션 개발.
-- [x] **실시간 지표 산출**: 유저별 세션 지속 시간, 구매 빈도 등 실시간 집계.
-- [x] **룰 기반 이탈 감지**: 특정 조건(ex. 3일 미접속 등) 충족 시 즉각적인 경고 이벤트 발생.
-
-> **Phase 2 코멘트**: 
-> Apache Flink(PyFlink)를 통해 분당 수만 건 이상의 이벤트를 실시간으로 분석할 수 있는 기반을 구축했습니다. 이제 데이터는 영구 저장소(MongoDB)에 저장됨과 동시에 실시간 엔진을 거쳐 즉각적인 비즈니스 인사이트로 변환됩니다.
+- [x] **Flink 연동**: `flink-connector-rabbitmq` JAR를 활용한 PyFlink 스트리밍 앱 개발.
+- [x] **실시간 지표 산출**: 유저별 룰 기반 이탈 징후 분석 및 결과 전달.
+- [x] **의존성 최적화**: Python 3.10-slim 환경에서 Flink 및 자바 커넥터 연동 성공.
 
 ## Phase 3: 예측 지능 및 마케팅 자동화 (완료 ✅)
-- [x] **SageMaker 통합**: `intelligence_service`에서 실제 예측 엔드포인트 호출 및 결과 반환.
+- [x] **Intelligence Service 통합**: Stream Processor로부터 분석 결과를 수신하여 예측 로직 수행.
 - [x] **Campaign Workflow**: 이탈 가능성 점수에 따라 맞춤형 캠페인 자동 트리거.
-- [x] **Notification Service Integration**: Push 및 인앱 메시지 API 연동을 통한 실제 액션 수행.
-
-> **Phase 3 코멘트**: 
-> 단순히 데이터를 분석하는 단계를 넘어, AI 예측 결과에 따라 시스템이 스스로 비즈니스 액션(마케팅 캠페인)을 수행하는 '지능형 자동화' 파이프라인을 완성했습니다.
+- [x] **성공 지표**: `[Action] Sending RETENTION_PROMO` 로그 확인을 통해 E2E 자동화 검증 완료.
 
 ## Phase 4: 실시간 모니터링 대시보드 (완료 ✅)
-- [x] **Frontend-Backend 연동**: FastAPI 전용 API 구현 및 React 데이터 페칭.
-- [x] **고성능 차트 구현**: D3.js 및 Plotly를 활용한 실시간 트래픽 및 LTV 시각화.
-- [x] **Campaign Management Tool**: 마케터가 대시보드에서 직접 세그먼트를 설정하고 캠페인을 온오프하는 UI 개발.
-
-> **Phase 4 코멘트**: 
-> 정적이던 대시보드 인터페이스에 생명력을 불어넣었습니다. 이제 운영자는 백엔드에서 처리되는 모든 데이터 흐름과 실시간 CCU, 인텔리전스 엔진의 작동 상태를 하나의 통합된 뷰에서 모니터링할 수 있습니다.
+- [x] **Frontend-Backend 연동**: FastAPI 전용 API 구현 및 React 데이터 페칭 구축.
+- [x] **도커 통합**: 프론트엔드 서비스를 백엔드 환경과 동일한 `docker-compose` 내로 통합하여 운영 편의성 극대화.
+- [x] **포트 최적화**: 5173(Vite) 포워딩 설정을 통해 단일 진입점 확보.
 
 ## Phase 5: 클라우드 운영 및 MLOps (완료 ✅)
-- [x] **AWS EKS 배포**: Kubernetes Manifest를 작성하고, 서비스 확장성(Replication) 및 로드 밸런싱 설계를 완료했습니다.
-- [x] **모니터링 강화**: Prometheus 설정 파일을 통해 클러스터 내 모든 마이크로서비스의 메트릭 수집 기반을 마련했습니다.
-- [x] **모델 재학습 파이프라인**: 성능 하락 감지 시 SageMaker를 통해 자동으로 재학습을 수행하는 MLOps 워크플로우 설계를 완료했습니다.
-
-> **Phase 5 코멘트**: 
-> 시스템을 상용 환경 수준으로 격상시켰습니다. 쿠버네티스를 통한 고가용성 확보와 프로메테우스를 이용한 전방위 모니터링, 그리고 AI 모델의 생명주기를 관리하는 MLOps 체계까지 갖추어 지속 가능한 운영이 가능해졌습니다.
+- [x] **AWS EKS 배포 준비 완료**: Kubernetes Manifest 및 Helm 차트 기초 설계 완료.
+- [x] **실시간 로그 모니터링**: `PYTHONUNBUFFERED` 설정을 통해 컨테이너 전반의 로그 가독성 확보.
+- [x] **통합 연동 가이드 수립**: `integration_guide.md`를 통한 단계별 자가 검점 체계 구축 및 최종 검증 통과.
 
 ---
 
 ### 📌 프로젝트 마일스톤 달성
-모든 개발 단계가 완료되었습니다. 이제 실제 트래픽을 수용하며 데이터 기반의 마케팅 효과를 측정하고 모델을 미세 조정(Fine-tuning)하는 고도화 작업에 집중할 수 있습니다.
+모든 개발 단계가 성공적으로 마무리되었습니다. 
+- **총 마이크로서비스**: 5개 (Gateway, Ingestion, Stream, Intel, Marketing)
+- **프론트엔드**: 1개 (React/Vite Dashboard)
+- **인프라**: 4개 (RMQ, MongoDB, Redis, PG)
+👉 **총 10개의 컨테이너가 유기적으로 작동하는 MSA 플랫폼 구축 완료.**

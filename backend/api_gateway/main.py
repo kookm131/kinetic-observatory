@@ -13,7 +13,22 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-app = FastAPI(title="Kinetic Observatory API Gateway")
+app = FastAPI(
+    title="Kinetic Observatory API Gateway",
+    description="""
+    ## Kinetic Observatory 실시간 이벤트 수집기
+    모바일 게임 유저의 실시간 이벤트를 수집하여 RabbitMQ로 전달하는 마이크로서비스 게이웨이입니다.
+    
+    * **Cloud-Native**: Docker 및 Kubernetes 기반 환경 최적화
+    * **High Performance**: 비동기 Pika 라이브러리를 통한 고속 메시지 큐 연동
+    * **Pub/Sub**: Fanout Exchange 구조의 이벤트 전파
+    """,
+    version="1.0.0",
+    contact={
+        "name": "Kinetic Development Team",
+        "url": "https://github.com/kinetic-observatory",
+    }
+)
 
 # Enable CORS for frontend integration
 app.add_middleware(
@@ -50,7 +65,10 @@ def get_rabbitmq_channel():
 async def root():
     return {"message": "Kinetic Observatory API Gateway is running"}
 
-@app.post("/events")
+@app.post("/events", 
+          tags=["Event Ingestion"], 
+          summary="실시간 게임 이벤트 수집", 
+          description="유저의 행동(구매, 클릭 등) 이벤트를 수신하여 RabbitMQ 익스체인지로 안전하게 발행합니다.")
 async def receive_event(event: GameEvent):
     connection, channel = get_rabbitmq_channel()
     if not channel:
